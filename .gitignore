@@ -14,7 +14,9 @@ dist-ssr
 
 # Config
 service-account.json
-firebase.config.js
+.env
+.env.*
+secrets/
 
 # Editor directories and files
 .vscode/*
