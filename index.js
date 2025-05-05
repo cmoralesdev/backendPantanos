@@ -85,13 +85,22 @@ app.get("/reservas", async (req, res) => {
         if (usuarioId) {
             query = query.where("usuarioId", "==", usuarioId);
         }
+        const reservasSnapshot = await query.get();
 
-        const snapshot = await query.get();
-        const reservas = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
+
+        const reservas = await Promise.all (reservasSnapshot.docs.map( async doc => {
+            const reserva = doc.data()
+            const pantanoRef = db.collection("pantanos").doc(reserva.pantanoId)
+            const guiaRef = db.collection("guias").doc(reserva.guiaId)
+            
+            const pantanoSnapshot = await pantanoRef.get();
+            const guiaSnapshot = await guiaRef.get();
+
+            const pantano = pantanoSnapshot.data();
+            const guia = guiaSnapshot.data();
+            
+            return {reserva:reserva, pantano:pantano, guia:guia}
         }));
-
         res.status(200).json(reservas);
     } catch (error) {
         console.error("Error al obtener reservas", error);
@@ -104,30 +113,23 @@ app.get("/reservas", async (req, res) => {
 app.post("/reservas", async (req, res) => {
     try {
         const {
-            nombre,
             fecha,
             pantanoId,
-            pantanoNombre,
-            pantanoImagen,
             guiaId,
-            guiaNombre,
             usuarioId
         } = req.body;
 
-        if (!nombre || !fecha || !pantanoId || !pantanoNombre || !pantanoImagen || !guiaId || !guiaNombre || !usuarioId) {
+        if ( !fecha || !pantanoId || !guiaId || !usuarioId) {
             return res.status(400).json({ message: "Faltan datos obligatorios." });
         }
 
         const reservaRef = db.collection("reservas").doc();
         const nuevaReserva = {
             id: reservaRef.id,
-            nombre,
+            
             fecha,
             pantanoId,
-            pantanoNombre,
-            pantanoImagen,
             guiaId,
-            guiaNombre,
             usuarioId,
             status: "Pendiente",
             creadaEn: new Date().toISOString(),
@@ -176,6 +178,7 @@ app.delete("/reservas/:id", async (req, res) => {
 
 app.put("/reservas/:id", async (req, res) => {
     try {
+    
         const { id } = req.params;
         const nuevaData = req.body;
         await db.collection("reservas").doc(id).update(nuevaData);
