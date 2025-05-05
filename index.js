@@ -20,28 +20,34 @@ app.use(express.json())
 
 app.get("/", async (req, res) => {
     try {
-        const { comunidad } = req.query
-        const pantanosRef = db.collection("pantanos")
-        let pantanoSnapShot
-        if (!comunidad) {
-            pantanoSnapShot = await pantanosRef.get()
-        } else {
-            pantanoSnapShot = await pantanosRef.where('comunidad', '==', comunidad).get()
+        const { comunidad, valoracion } = req.query;
+        let query = db.collection("pantanos");
+
+        if (comunidad) {
+            query = query.where("comunidad", "==", comunidad);
         }
 
-        if (pantanoSnapShot.empty) {
-            console.error("No hemos encontrado la referencia")
-            return res.status(404).json({ message: "No hemos encontrado la referencia" });
-
+        if (valoracion) {
+            query = query.where("valoracion", "==", Number(valoracion));
         }
-        const pantanos = pantanoSnapShot.docs.map(doc => (doc.data()
-        ));
-        res.status(200).json(pantanos)
+
+        const snapshot = await query.get();
+
+        if (snapshot.empty) {
+            return res.status(200).json([]);
+        }
+
+        const pantanos = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        res.status(200).json(pantanos);
     } catch (error) {
-        console.error("Error al obtener pantanos:", error)
-        res.sendStatus(500)
+        console.error("Error al obtener pantanos:", error);
+        res.sendStatus(500);
     }
-})
+});
 
 app.get("/guias", async (req, res) => {
     try {
@@ -55,7 +61,7 @@ app.get("/guias", async (req, res) => {
         const snapshot = await guiasRef.where("pantanos", "array-contains", pantanoId).get();
 
         if (snapshot.empty) {
-            return res.status(200).json([]); // No hay guías, pero no es error
+            return res.status(200).json([]);
         }
 
         const guias = snapshot.docs.map(doc => ({
@@ -70,43 +76,7 @@ app.get("/guias", async (req, res) => {
     }
 });
 
-//crear app.post que recoja el formulario del modal y /reserva y que cree reserva en firebase
-/*
-app.post("/reservas", async (req, res) => {
-    try {
-        const {
-            nombre,
-            fecha,
-            pantanoId,
-            guiaId,
-        } = req.body;
 
-        if (!nombre || !fecha || !pantanoId || !guiaId) {
-            return res.status(400).json({ message: "Faltan datos obligatorios." });
-        }
-
-        const reservaRef = db.collection("reservas").doc();
-        const nuevaReserva = {
-            id: reservaRef.id,
-            nombre,
-            fecha,
-            pantanoId,
-            guiaId,
-            status: "Pendiente",
-            creadaEn: new Date().toISOString(),
-        };
-
-        await reservaRef.set(nuevaReserva);
-
-        res.status(201).json({ message: "Reserva guardada correctamente." });
-    } catch (error) {
-        console.error("Error al guardar reserva:", error);
-        res.status(500).json({ message: "Error interno del servidor." });
-    }
-});
-*/
-
-// Obtener reservas con filtro opcional por usuarioId
 app.get("/reservas", async (req, res) => {
     try {
         const { usuarioId } = req.query;
@@ -130,7 +100,7 @@ app.get("/reservas", async (req, res) => {
 });
 
 
-// Crear nueva reserva
+
 app.post("/reservas", async (req, res) => {
     try {
         const {
@@ -141,7 +111,7 @@ app.post("/reservas", async (req, res) => {
             pantanoImagen,
             guiaId,
             guiaNombre,
-            usuarioId // ← se espera también este campo ahora
+            usuarioId
         } = req.body;
 
         if (!nombre || !fecha || !pantanoId || !pantanoNombre || !pantanoImagen || !guiaId || !guiaNombre || !usuarioId) {
@@ -193,5 +163,26 @@ app.get("/:id", async (req, res) => {
     }
 })
 
+app.delete("/reservas/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        await db.collection("reservas").doc(id).delete();
+        res.status(200).json({ message: "Reserva eliminada correctamente." });
+    } catch (error) {
+        console.error("Error al eliminar reserva:", error);
+        res.status(500).json({ message: "Error al eliminar reserva." });
+    }
+});
 
+app.put("/reservas/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const nuevaData = req.body;
+        await db.collection("reservas").doc(id).update(nuevaData);
+        res.status(200).json({ message: "Reserva actualizada correctamente." });
+    } catch (error) {
+        console.error("Error al actualizar reserva:", error);
+        res.status(500).json({ message: "Error al actualizar reserva." });
+    }
+});
 app.listen(port, () => { console.log(`Server is running at http://localhost:${port}`) })
