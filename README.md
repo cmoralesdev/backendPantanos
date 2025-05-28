@@ -13,6 +13,12 @@ Este repositorio contiene el backend de la aplicación web "Pesca Segura", desar
 
 ## Instalación
 
+Este repositorio no incluye las credenciales ni el archivo `.env` necesario para ejecutar el proyecto, ya que se encuentra publicado de forma pública.
+
+No obstante, en la entrega oficial del proyecto sí se incluye el `.env`, por lo que la aplicación podrá ejecutarse y desplegarse correctamente desde el código entregado para evaluación.
+
+Pasos para preparar el entorno:
+
 1. Clonar el repositorio:  
    `git clone https://github.com/cmoralesdev/backendPantanos`
 
@@ -21,6 +27,8 @@ Este repositorio contiene el backend de la aplicación web "Pesca Segura", desar
 
 3. Ejecutar el servidor:  
    `npm run dev`
+
+> ⚠️ Asegúrate de tener el archivo `.env` con la configuración de Firebase en la raíz del proyecto antes de ejecutar `npm run dev`.
 
 ## Dependencias principales (`package.json`)
 
